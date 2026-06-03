@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeTrack — Учёт посещаемости</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar__brand">
+                <div class="sidebar__logo">⏱</div>
+                <div>
+                    <div class="sidebar__title">TimeTrack</div>
+                    <div class="sidebar__sub">HR Attendance</div>
+                </div>
+            </div>
+
+            <nav class="sidebar__nav">
+                <button class="nav-item is-active" data-view="dashboard">
+                    <span class="nav-item__icon">📊</span> Сводка
+                </button>
+                <button class="nav-item" data-view="checkin">
+                    <span class="nav-item__icon">🚪</span> Отметка прихода/ухода
+                </button>
+                <button class="nav-item" data-view="employees">
+                    <span class="nav-item__icon">👥</span> Сотрудники
+                </button>
+                <button class="nav-item" data-view="timesheet">
+                    <span class="nav-item__icon">📅</span> Табель за месяц
+                </button>
+                <button class="nav-item" data-view="absences">
+                    <span class="nav-item__icon">🏖</span> Отсутствия
+                </button>
+                <button class="nav-item" data-view="schedules">
+                    <span class="nav-item__icon">⏰</span> Графики работы
+                </button>
+            </nav>
+
+            <div class="sidebar__footer">
+                <div class="user-card">
+                    <div class="user-card__avatar">HR</div>
+                    <div>
+                        <div class="user-card__name">Петрова А. С.</div>
+                        <div class="user-card__role">HR-менеджер</div>
+                    </div>
+                </div>
+                <div class="sidebar__date" id="today-label">—</div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <header class="content__header">
+                <h1 id="view-title">Сводка</h1>
+                <div class="content__actions" id="content-actions"></div>
+            </header>
+
+            <!-- DASHBOARD -->
+            <section class="view" id="view-dashboard">
+                <div class="kpi-grid">
+                    <div class="kpi" style="--c: #10B981">
+                        <div class="kpi__label">На работе сейчас</div>
+                        <div class="kpi__value" id="kpi-on-duty">—</div>
+                    </div>
+                    <div class="kpi" style="--c: #F59E0B">
+                        <div class="kpi__label">Опозданий сегодня</div>
+                        <div class="kpi__value" id="kpi-late">—</div>
+                    </div>
+                    <div class="kpi" style="--c: #3B82F6">
+                        <div class="kpi__label">В отпуске</div>
+                        <div class="kpi__value" id="kpi-vacation">—</div>
+                    </div>
+                    <div class="kpi" style="--c: #EF4444">
+                        <div class="kpi__label">На больничном</div>
+                        <div class="kpi__value" id="kpi-sick">—</div>
+                    </div>
+                </div>
+
+                <h2 class="block-title">Кто сегодня на работе</h2>
+                <div class="presence-grid" id="presence-grid"></div>
+
+                <h2 class="block-title">⚠ Опоздания сегодня</h2>
+                <div class="lateness-list" id="lateness-list"></div>
+            </section>
+
+            <!-- CHECK-IN -->
+            <section class="view" id="view-checkin" hidden>
+                <p style="color:#64748B;margin-top:0">
+                    Выберите сотрудника и зафиксируйте его приход или уход.
+                    Опоздания и переработки рассчитываются автоматически по графику.
+                </p>
+                <div class="checkin-grid">
+                    <div class="card">
+                        <h3 class="card__title">Ручная отметка</h3>
+                        <form id="checkin-form" class="form">
+                            <label class="field"><span>Сотрудник *</span>
+                                <select name="employee_id" id="checkin-emp" required></select>
+                            </label>
+                            <label class="field"><span>Время (по умолчанию — сейчас)</span>
+                                <input type="datetime-local" name="timestamp">
+                            </label>
+                            <label class="field"><span>Комментарий</span>
+                                <input name="note" placeholder="Опционально">
+                            </label>
+                            <div style="display:flex;gap:10px">
+                                <button type="button" class="btn btn--primary" id="btn-checkin">Зафиксировать ПРИХОД</button>
+                                <button type="button" class="btn btn--ghost"   id="btn-checkout">Зафиксировать УХОД</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3 class="card__title">Журнал отметок за день</h3>
+                        <div class="data-table-wrap" style="margin-top:10px">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Сотрудник</th>
+                                        <th>Приход</th>
+                                        <th>Уход</th>
+                                        <th>Опозд.</th>
+                                        <th>Отраб.</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="today-attendance-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- EMPLOYEES -->
+            <section class="view" id="view-employees" hidden>
+                <div class="filter-row">
+                    <label>Отдел:
+                        <select id="filter-emp-dept"><option value="">Все</option></select>
+                    </label>
+                    <label>График:
+                        <select id="filter-emp-sched"><option value="">Все</option></select>
+                    </label>
+                </div>
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Таб. №</th>
+                                <th>ФИО</th>
+                                <th>Отдел</th>
+                                <th>Должность</th>
+                                <th>График</th>
+                                <th>Принят</th>
+                                <th>Телефон</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employees-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TIMESHEET -->
+            <section class="view" id="view-timesheet" hidden>
+                <div class="filter-row">
+                    <label>Период:
+                        <input type="month" id="ts-month">
+                    </label>
+                    <label>Отдел:
+                        <select id="ts-dept"><option value="">Все</option></select>
+                    </label>
+                </div>
+                <div class="timesheet-wrap" id="timesheet-wrap"></div>
+                <div class="timesheet-legend" id="timesheet-legend"></div>
+            </section>
+
+            <!-- ABSENCES -->
+            <section class="view" id="view-absences" hidden>
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Сотрудник</th>
+                                <th>Тип</th>
+                                <th>С</th>
+                                <th>По</th>
+                                <th>Дней</th>
+                                <th>Документ</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="absences-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SCHEDULES -->
+            <section class="view" id="view-schedules" hidden>
+                <div class="schedule-grid" id="schedule-grid"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal-overlay" class="modal-overlay" hidden>
+        <div class="modal">
+            <header class="modal__header">
+                <h2 id="modal-title">—</h2>
+                <button class="modal__close" id="modal-close">×</button>
+            </header>
+            <div class="modal__body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="toast-stack" class="toast-stack"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# SQLite — пересоздаётся через init_db.py
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
